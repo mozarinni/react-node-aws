@@ -13,7 +13,6 @@ AWS.config.update({
 const ses = new AWS.SES({ apiVersion: "2010-12-01" });
 
 exports.register = (req, res) => {
-  // console.log("REGISTER CONTROLLER", req.body);
   const { name, email, password } = req.body;
 
   // check if user exists in DB
@@ -105,5 +104,48 @@ exports.login = (req, res) => {
     const { _id, name, email, role } = user;
 
     return res.json({ token, user: { _id, name, email, role } });
+  });
+};
+
+exports.requireSignin = (req, res, next) => {
+  const authorizationHeader = req.headers["authorization"];
+  const token = authorizationHeader.trim().split(" ")[1];
+  let decoded;
+
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(403).json({ error: "Invalid token" });
+  }
+  req.user = { _id: decoded };
+  next();
+};
+
+exports.authMiddleware = (req, res, next) => {
+  const authUserId = req.user._id;
+  User.findOne({ _id: authUserId }).exec((err, user) => {
+    if (err || !user) {
+      console.log(err);
+      return res.status(400).json({ error: "User not found " });
+    }
+    req.profile = user;
+    next();
+  });
+};
+
+exports.adminMiddleware = (req, res, next) => {
+  const adminUserId = req.user._id;
+  User.findOne({ _id: adminUserId }).exec((err, user) => {
+    if (err || !user) {
+      console.log(err);
+      return res.status(400).json({ error: "User not found " });
+    }
+
+    if (user.role !== "admin") {
+      return res.status(400).json({ error: "Admin resource. Access denied" });
+    }
+
+    req.profile = user;
+    next();
   });
 };
