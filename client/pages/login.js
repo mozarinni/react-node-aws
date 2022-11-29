@@ -35,13 +35,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setState({ ...state, buttonText: "Logging in" });
-
     try {
       const response = await axios.post(`${API}/login`, {
         email,
         password,
       });
-
+      // console.log(response); // data > token / user
       authenticate(response, () =>
         isAuth() && isAuth().role === "admin"
           ? Router.push("/admin")
@@ -89,11 +88,13 @@ const Login = () => {
     <Layout>
       <div className="col-md-6 offset-md-3">
         <h1>Login</h1>
-        {JSON.stringify(isAuth())}
         <br />
         {success && showSuccessMessage(success)}
         {error && showErrorMessage(error)}
         {loginForm()}
+        <Link href="/auth/password/forgot">
+          <a className="text-danger float-right">Forgot Password</a>
+        </Link>
       </div>
     </Layout>
   );
